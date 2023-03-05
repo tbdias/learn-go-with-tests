@@ -12,7 +12,7 @@ To do this we will need to use _reflection_.
 
 From [The Go Blog: Reflection](https://blog.golang.org/laws-of-reflection)
 
-## What is `interface`?
+## What is `interface{}`?
 
 We have enjoyed the type-safety that Go has offered us in terms of functions that work with known types, such as `string`, `int` and our own types like `BankAccount`.
 
@@ -20,18 +20,18 @@ This means that we get some documentation for free and the compiler will complai
 
 You may come across scenarios though where you want to write a function where you don't know the type at compile time.
 
-Go lets us get around this with the type `interface{}` which you can think of as just _any_ type.
+Go lets us get around this with the type `interface{}` which you can think of as just _any_ type (in fact, in Go `any` is an [alias](https://cs.opensource.google/go/go/+/master:src/builtin/builtin.go;drc=master;l=95) for `interface{}`).
 
 So `walk(x interface{}, fn func(string))` will accept any value for `x`.
 
-### So why not use `interface` for everything and have really flexible functions?
+### So why not use `interface{}` for everything and have really flexible functions?
 
-- As a user of a function that takes `interface` you lose type safety. What if you meant to pass `Foo.bar` of type `string` into a function but instead did `Foo.baz` which is an `int`? The compiler won't be able to inform you of your mistake. You also have no idea _what_ you're allowed to pass to a function. Knowing that a function takes a `UserService` for instance is very useful.
+- As a user of a function that takes `interface{}` you lose type safety. What if you meant to pass `Foo.bar` of type `string` into a function but instead did `Foo.baz` which is an `int`? The compiler won't be able to inform you of your mistake. You also have no idea _what_ you're allowed to pass to a function. Knowing that a function takes a `UserService` for instance is very useful.
 - As a writer of such a function, you have to be able to inspect _anything_ that has been passed to you and try and figure out what the type is and what you can do with it. This is done using _reflection_. This can be quite clumsy and difficult to read and is generally less performant (as you have to do checks at runtime).
 
 In short only use reflection if you really need to.
 
-If you want polymorphic functions, consider if you could design it around an interface (not `interface`, confusingly) so that users can use your function with multiple types if they implement whatever methods you need for your function to work.
+If you want polymorphic functions, consider if you could design it around an interface (not `interface{}`, confusingly) so that users can use your function with multiple types if they implement whatever methods you need for your function to work.
 
 Our function will need to be able to work with lots of different things. As always we'll take an iterative approach, writing tests for each new thing we want to support and refactoring along the way until we're done.
 
@@ -133,12 +133,12 @@ This code is _very unsafe and very naive_, but remember: our goal when we are in
 
 We need to use reflection to have a look at `x` and try and look at its properties.
 
-The [reflect package](https://godoc.org/reflect) has a function `ValueOf` which returns us a `Value` of a given variable. This has ways for us to inspect a value, including its fields which we use on the next line.
+The [reflect package](https://pkg.go.dev/reflect) has a function `ValueOf` which returns us a `Value` of a given variable. This has ways for us to inspect a value, including its fields which we use on the next line.
 
-We then make some very optimistic assumptions about the value passed in
+We then make some very optimistic assumptions about the value passed in:
 
-- We look at the first and only field, there may be no fields at all which would cause a panic
-- We then call `String()` which returns the underlying value as a string but we know it would be wrong if the field was something other than a string.
+- We look at the first and only field. However, there may be no fields at all, which would cause a panic.
+- We then call `String()`, which returns the underlying value as a string. However, this would be wrong if the field was something other than a string.
 
 ## Refactor
 
@@ -157,7 +157,7 @@ func TestWalk(t *testing.T) {
 		ExpectedCalls []string
 	}{
 		{
-			"Struct with one string field",
+			"struct with one string field",
 			struct {
 				Name string
 			}{"Chris"},
@@ -188,7 +188,7 @@ Add the following scenario to the `cases`.
 
 ```
 {
-    "Struct with two string fields",
+    "struct with two string fields",
     struct {
         Name string
         City string
@@ -200,8 +200,8 @@ Add the following scenario to the `cases`.
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Struct_with_two_string_fields
-    --- FAIL: TestWalk/Struct_with_two_string_fields (0.00s)
+=== RUN   TestWalk/struct_with_two_string_fields
+    --- FAIL: TestWalk/struct_with_two_string_fields (0.00s)
         reflection_test.go:40: got [Chris], want [Chris London]
 ```
 
@@ -232,7 +232,7 @@ Add the following case
 
 ```
 {
-    "Struct with non string field",
+    "struct with non string field",
     struct {
         Name string
         Age  int
@@ -244,8 +244,8 @@ Add the following case
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Struct_with_non_string_field
-    --- FAIL: TestWalk/Struct_with_non_string_field (0.00s)
+=== RUN   TestWalk/struct_with_non_string_field
+    --- FAIL: TestWalk/struct_with_non_string_field (0.00s)
         reflection_test.go:46: got [Chris <int Value>], want [Chris]
 ```
 
@@ -267,7 +267,7 @@ func walk(x interface{}, fn func(input string)) {
 }
 ```
 
-We can do that by checking its [`Kind`](https://godoc.org/reflect#Kind).
+We can do that by checking its [`Kind`](https://pkg.go.dev/reflect#Kind).
 
 ## Refactor
 
@@ -281,7 +281,7 @@ We have been using the anonymous struct syntax to declare types ad-hocly for our
 
 ```
 {
-    "Nested fields",
+    "nested fields",
     struct {
         Name string
         Profile struct {
@@ -318,7 +318,7 @@ Now we can add this to our cases which reads a lot clearer than before
 
 ```
 {
-    "Nested fields",
+    "nested fields",
     Person{
         "Chris",
         Profile{33, "London"},
@@ -331,7 +331,7 @@ Now we can add this to our cases which reads a lot clearer than before
 
 ```
 === RUN   TestWalk/Nested_fields
-    --- FAIL: TestWalk/Nested_fields (0.00s)
+    --- FAIL: TestWalk/nested_fields (0.00s)
         reflection_test.go:54: got [Chris], want [Chris London]
 ```
 
@@ -388,7 +388,7 @@ Add this case
 
 ```
 {
-    "Pointers to things",
+    "pointers to things",
     &Person{
         "Chris",
         Profile{33, "London"},
@@ -400,7 +400,7 @@ Add this case
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Pointers_to_things
+=== RUN   TestWalk/pointers_to_things
 panic: reflect: call of reflect.Value.NumField on ptr Value [recovered]
     panic: reflect: call of reflect.Value.NumField on ptr Value
 ```
@@ -472,7 +472,7 @@ Next, we need to cover slices.
 
 ```
 {
-    "Slices",
+    "slices",
     []Profile {
         {33, "London"},
         {34, "Reykjavík"},
@@ -484,7 +484,7 @@ Next, we need to cover slices.
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Slices
+=== RUN   TestWalk/slices
 panic: reflect: call of reflect.Value.NumField on slice Value [recovered]
     panic: reflect: call of reflect.Value.NumField on slice Value
 ```
@@ -596,7 +596,7 @@ Add to the cases
 
 ```
 {
-    "Arrays",
+    "arrays",
     [2]Profile {
         {33, "London"},
         {34, "Reykjavík"},
@@ -608,8 +608,8 @@ Add to the cases
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Arrays
-    --- FAIL: TestWalk/Arrays (0.00s)
+=== RUN   TestWalk/arrays
+    --- FAIL: TestWalk/arrays (0.00s)
         reflection_test.go:78: got [], want [London Reykjavík]
 ```
 
@@ -647,7 +647,7 @@ The next type we want to handle is `map`.
 
 ```
 {
-    "Maps",
+    "maps",
     map[string]string{
         "Foo": "Bar",
         "Baz": "Boz",
@@ -659,8 +659,8 @@ The next type we want to handle is `map`.
 ## Try to run the test
 
 ```
-=== RUN   TestWalk/Maps
-    --- FAIL: TestWalk/Maps (0.00s)
+=== RUN   TestWalk/maps
+    --- FAIL: TestWalk/maps (0.00s)
         reflection_test.go:86: got [], want [Bar Boz]
 ```
 

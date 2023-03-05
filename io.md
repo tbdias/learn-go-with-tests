@@ -155,8 +155,8 @@ func TestFileSystemStore(t *testing.T) {
 
 	t.Run("league from a reader", func(t *testing.T) {
 		database := strings.NewReader(`[
-            {"Name": "Cleo", "Wins": 10},
-            {"Name": "Chris", "Wins": 33}]`)
+			{"Name": "Cleo", "Wins": 10},
+			{"Name": "Chris", "Wins": 33}]`)
 
 		store := FileSystemPlayerStore{database}
 
@@ -285,7 +285,7 @@ Add the following to the end of our current test.
 //file_system_store_test.go
 
 // read again
-got := store.GetLeague()
+got = store.GetLeague()
 assertLeague(t, got, want)
 ```
 
@@ -325,7 +325,7 @@ func (f *FileSystemPlayerStore) GetLeague() []Player {
 }
 ```
 
-Try running the test, it now passes! Happily for us `string.NewReader` that we used in our test also implements `ReadSeeker` so we didn't have to make any other changes.
+Try running the test, it now passes! Happily for us `strings.NewReader` that we used in our test also implements `ReadSeeker` so we didn't have to make any other changes.
 
 Next we'll implement `GetPlayerScore`.
 
@@ -335,8 +335,8 @@ Next we'll implement `GetPlayerScore`.
 //file_system_store_test.go
 t.Run("get player score", func(t *testing.T) {
 	database := strings.NewReader(`[
-        {"Name": "Cleo", "Wins": 10},
-        {"Name": "Chris", "Wins": 33}]`)
+		{"Name": "Cleo", "Wins": 10},
+		{"Name": "Chris", "Wins": 33}]`)
 
 	store := FileSystemPlayerStore{database}
 
@@ -404,8 +404,8 @@ You will have seen dozens of test helper refactorings so I'll leave this to you 
 //file_system_store_test.go
 t.Run("get player score", func(t *testing.T) {
 	database := strings.NewReader(`[
-        {"Name": "Cleo", "Wins": 10},
-        {"Name": "Chris", "Wins": 33}]`)
+		{"Name": "Cleo", "Wins": 10},
+		{"Name": "Chris", "Wins": 33}]`)
 
 	store := FileSystemPlayerStore{database}
 
@@ -452,14 +452,14 @@ I don't think there's an especially wrong answer here, but by choosing to use a 
 
 Before adding our test we need to make our other tests compile by replacing the `strings.Reader` with an `os.File`.
 
-Let's create a helper function which will create a temporary file with some data inside it
+Let's create some helper functions which will create a temporary file with some data inside it, and abstract our score tests
 
 ```go
 //file_system_store_test.go
 func createTempFile(t testing.TB, initialData string) (io.ReadWriteSeeker, func()) {
 	t.Helper()
 
-	tmpfile, err := ioutil.TempFile("", "db")
+	tmpfile, err := os.CreateTemp("", "db")
 
 	if err != nil {
 		t.Fatalf("could not create temp file %v", err)
@@ -474,9 +474,16 @@ func createTempFile(t testing.TB, initialData string) (io.ReadWriteSeeker, func(
 
 	return tmpfile, removeFile
 }
+
+func assertScoreEquals(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d want %d", got, want)
+	}
+}
 ```
 
-[TempFile](https://golang.org/pkg/io/ioutil/#TempDir) creates a temporary file for us to use. The `"db"` value we've passed in is a prefix put on a random file name it will create. This is to ensure it won't clash with other files by accident.
+[CreateTemp](https://pkg.go.dev/os#CreateTemp) creates a temporary file for us to use. The `"db"` value we've passed in is a prefix put on a random file name it will create. This is to ensure it won't clash with other files by accident.
 
 You'll notice we're not only returning our `ReadWriteSeeker` (the file) but also a function. We need to make sure that the file is removed once the test is finished. We don't want to leak details of the files into the test as it's prone to error and uninteresting for the reader. By returning a `removeFile` function, we can take care of the details in our helper and all the caller has to do is run `defer cleanDatabase()`.
 
@@ -486,8 +493,8 @@ func TestFileSystemStore(t *testing.T) {
 
 	t.Run("league from a reader", func(t *testing.T) {
 		database, cleanDatabase := createTempFile(t, `[
-            {"Name": "Cleo", "Wins": 10},
-            {"Name": "Chris", "Wins": 33}]`)
+			{"Name": "Cleo", "Wins": 10},
+			{"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
 
 		store := FileSystemPlayerStore{database}
@@ -508,8 +515,8 @@ func TestFileSystemStore(t *testing.T) {
 
 	t.Run("get player score", func(t *testing.T) {
 		database, cleanDatabase := createTempFile(t, `[
-            {"Name": "Cleo", "Wins": 10},
-            {"Name": "Chris", "Wins": 33}]`)
+			{"Name": "Cleo", "Wins": 10},
+			{"Name": "Chris", "Wins": 33}]`)
 		defer cleanDatabase()
 
 		store := FileSystemPlayerStore{database}
@@ -529,8 +536,8 @@ Let's get the first iteration of recording a win for an existing player
 //file_system_store_test.go
 t.Run("store wins for existing players", func(t *testing.T) {
 	database, cleanDatabase := createTempFile(t, `[
-        {"Name": "Cleo", "Wins": 10},
-        {"Name": "Chris", "Wins": 33}]`)
+		{"Name": "Cleo", "Wins": 10},
+		{"Name": "Chris", "Wins": 33}]`)
 	defer cleanDatabase()
 
 	store := FileSystemPlayerStore{database}
@@ -644,7 +651,7 @@ func (f *FileSystemPlayerStore) RecordWin(name string) {
 }
 ```
 
-This is looking much better and we can see how we might be able to find other useful functionality around `League` can be refactored.
+This is looking much better and we can see how we might be able to find other useful functionality around `League` that can be refactored.
 
 We now need to handle the scenario of recording wins of new players.
 
@@ -654,8 +661,8 @@ We now need to handle the scenario of recording wins of new players.
 //file_system_store_test.go
 t.Run("store wins for new players", func(t *testing.T) {
 	database, cleanDatabase := createTempFile(t, `[
-        {"Name": "Cleo", "Wins": 10},
-        {"Name": "Chris", "Wins": 33}]`)
+		{"Name": "Cleo", "Wins": 10},
+		{"Name": "Chris", "Wins": 33}]`)
 	defer cleanDatabase()
 
 	store := FileSystemPlayerStore{database}
@@ -874,7 +881,7 @@ func TestTape_Write(t *testing.T) {
 	tape.Write([]byte("abc"))
 
 	file.Seek(0, 0)
-	newFileContents, _ := ioutil.ReadAll(file)
+	newFileContents, _ := io.ReadAll(file)
 
 	got := string(newFileContents)
 	want := "abc"
@@ -1203,8 +1210,8 @@ We can update the assertion on our first test in `TestFileSystemStore`:
 //file_system_store_test.go
 t.Run("league sorted", func(t *testing.T) {
 	database, cleanDatabase := createTempFile(t, `[
-        {"Name": "Cleo", "Wins": 10},
-        {"Name": "Chris", "Wins": 33}]`)
+		{"Name": "Cleo", "Wins": 10},
+		{"Name": "Chris", "Wins": 33}]`)
 	defer cleanDatabase()
 
 	store, err := NewFileSystemPlayerStore(database)

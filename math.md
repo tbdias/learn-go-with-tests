@@ -76,7 +76,7 @@ These tests are sometimes called 'acceptance tests', sometimes called
 'feature test'. The idea is that you write a really high level test to
 describe what you're trying to achieve - a user clicks a button on a website,
 and they see a complete list of the Pokémon they've caught, for instance.
-When we've written that test, we can then write test more tests - unit tests -
+When we've written that test, we can then write more tests - unit tests -
 that build towards a working system that will pass the acceptance test. So
 for our example these tests might be about rendering a webpage with a button,
 testing route handlers on a web server, performing database look ups, etc.
@@ -133,8 +133,6 @@ package clockface_test
 import (
 	"testing"
 	"time"
-
-	"github.com/gypsydave5/learn-go-with-tests/math/v1/clockface"
 )
 
 func TestSecondHandAtMidnight(t *testing.T) {
@@ -273,7 +271,7 @@ This is called the 'unit circle' because... well, the radius is 1 unit!
 
 The circumference of the circle is made of points on the grid - more
 coordinates. The x and y components of each of these coordinates form
-a triangle, the hypotenuse of which is always 1 - the radius of the circle
+a triangle, the hypotenuse of which is always 1 (i.e. the radius of the circle).
 
 ![picture of the unit circle with a point defined on the circumference](math/images/unit_circle_coords.png)
 
@@ -577,7 +575,7 @@ for us to swallow.
 ### Write the test first
 
 ```go
-func TestSecondHandVector(t *testing.T) {
+func TestSecondHandPoint(t *testing.T) {
 	cases := []struct {
 		time  time.Time
 		point Point
@@ -840,11 +838,11 @@ directory, called (confusingly), `clockface`. In there we'll put the `main`
 package that will create the binary that will build an SVG:
 
 ```
-├── clockface
-│   └── main.go
-├── clockface.go
-├── clockface_acceptance_test.go
-└── clockface_test.go
+|-- clockface
+|       |-- main.go
+|-- clockface.go
+|-- clockface_acceptance_test.go
+|-- clockface_test.go
 ```
 
 Inside `main.go`, you'll start with this code but change the import for the
@@ -967,7 +965,8 @@ to parse it.
 [`encoding/xml`][xml] is the Go package that can handle all things to do with
 simple XML parsing.
 
-The function [`xml.Unmarshall`](https://godoc.org/encoding/xml#Unmarshal) takes
+
+The function [`xml.Unmarshal`](https://pkg.go.dev/encoding/xml#Unmarshal) takes
 a `[]byte` of XML data, and a pointer to a struct for it to get unmarshalled in
 to.
 
@@ -1034,7 +1033,7 @@ func TestSVGWriterAtMidnight(t *testing.T) {
 ```
 
 We write the output of `clockface.SVGWriter` to a `bytes.Buffer`
-and then `Unmarshall` it into an `Svg`. We then look at each `Line` in the `Svg`
+and then `Unmarshal` it into an `Svg`. We then look at each `Line` in the `Svg`
 to see if any of them have the expected `X2` and `Y2` values. If we get a match
 we return early (passing the test); if not we fail with a (hopefully)
 informative message.
@@ -2201,4 +2200,4 @@ tests. It is an investment.
 [mathcos]: https://golang.org/pkg/math/#Cos
 [floatingpoint]: https://0.30000000000000004.com/
 [phlip]: http://wiki.c2.com/?PhlIp
-[xml]: https://godoc.org/encoding/xml
+[xml]: https://pkg.go.dev/encoding/xml

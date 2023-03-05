@@ -245,9 +245,7 @@ func TestAdd(t *testing.T) {
 		t.Fatal("should find added word:", err)
 	}
 
-	if got != want {
-		t.Errorf("got %q want %q", got, want)
-	}
+	assertStrings(t, got, want)
 }
 ```
 
@@ -330,10 +328,7 @@ func assertDefinition(t testing.TB, dictionary Dictionary, word, definition stri
 	if err != nil {
 		t.Fatal("should find added word:", err)
 	}
-
-	if definition != got {
-		t.Errorf("got %q want %q", got, definition)
-	}
+	assertStrings(t, got, want)
 }
 ```
 
@@ -508,8 +503,8 @@ There is no refactoring we need to do on this since it was a simple change. Howe
 t.Run("existing word", func(t *testing.T) {
 	word := "test"
 	definition := "this is just a test"
-	newDefinition := "new definition"
 	dictionary := Dictionary{word: definition}
+	newDefinition := "new definition"
 
 	err := dictionary.Update(word, newDefinition)
 

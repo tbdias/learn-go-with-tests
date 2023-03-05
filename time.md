@@ -375,7 +375,7 @@ Try running the app and it won't compile, complaining about not enough args to `
 
 Let's create an implementation of `BlindAlerter` that we can use in our application.
 
-Create `BlindAlerter.go` and move our `BlindAlerter` interface and add the new things below
+Create `blind_alerter.go` and move our `BlindAlerter` interface and add the new things below
 
 ```go
 package poker
@@ -1108,7 +1108,7 @@ After refactoring the dependency list reflected our design goal. This is another
 
 ## An example of a function implementing an interface
 
-When you define an interface with one method in it you might want to consider defining a `MyInterfaceFunc` type to complement it so users can implement your interface with just a function
+When you define an interface with one method in it you might want to consider defining a `MyInterfaceFunc` type to complement it so users can implement your interface with just a function.
 
 ```go
 type BlindAlerter interface {
@@ -1123,3 +1123,23 @@ func (a BlindAlerterFunc) ScheduleAlertAt(duration time.Duration, amount int) {
 	a(duration, amount)
 }
 ```
+
+By doing this, people using your library can implement your interface with just a function. They can use [Type Conversion](https://go.dev/tour/basics/13) to convert their function into a `BlindAlerterFunc` and then use it as a BlindAlerter (as `BlindAlerterFunc` implements `BlindAlerter`).
+
+```go
+game := poker.NewTexasHoldem(poker.BlindAlerterFunc(poker.StdOutAlerter), store)
+```
+
+The broader point here is, in Go you can add methods to _types_, not just structs. This is a very powerful feature, and you can use it to implement interfaces in more convenient ways.
+
+Consider that you can not only define types of functions, but also define types around other types, so that you can add methods to them.
+
+```go
+type Blog map[string]string
+
+func (b Blog) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, b[r.URL.Path])
+}
+```
+
+Here we've created an HTTP handler that implements a very simple "blog" where it will use URL paths as keys to posts stored in a map.
